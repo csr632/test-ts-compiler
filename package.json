@@ -1,5 +1,5 @@
 {
-  "name": "@alicloud/console-components-build-doc",
+  "name": "test",
   "version": "0.0.1",
   "license": "MIT",
   "main": "lib/index.js",
@@ -12,23 +12,12 @@
     "prepare": "npm run clean && tsc"
   },
   "dependencies": {
-    "@microsoft/api-extractor-model": "^7.7.11",
-    "@rollup/plugin-node-resolve": "^7.1.1",
-    "@rollup/pluginutils": "^3.0.8",
     "assert": "^2.0.0",
-    "enhanced-resolve": "^4.1.1",
-    "query-string": "^6.12.0",
-    "rollup": "^2.4.0",
-    "rollup-plugin-babel": "^4.4.0",
-    "rollup-pluginutils": "^2.8.2"
+    "enhanced-resolve": "^4.1.1"
   },
   "devDependencies": {
     "@types/assert": "^1.4.6",
-    "@types/estree": "^0.0.44",
-    "@types/node": "^13.11.1",
+    "@types/enhanced-resolve": "^3.0.6",
     "typescript": "^3.8.3"
-  },
-  "peerDependencies": {
-    "rollup": "^2.4.0"
   }
 }

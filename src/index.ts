@@ -1,14 +1,7 @@
-import { createFilter, extractAssignedNames } from '@rollup/pluginutils'
-import type { Plugin } from 'rollup'
-import * as rollup from 'rollup'
-import * as assert from 'assert'
+import * as dummy from "enhanced-resolve";
 
-declare let var1: Plugin
+// the type is reolved to @types/node,
+// but I expect it to resolve to @types/assert
+import assert from "assert";
 
-createFilter('xxx', 'yyy')
-
-(rollup)
-
-assert.equal(true, true)
-
-extractAssignedNames(1 as any)
+// It will resolve correctly if I comment out the first line.
