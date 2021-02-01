@@ -1,14 +1,17 @@
 {
+  "include": ["./src"],
   "compilerOptions": {
     "target": "es5",
     "module": "commonjs",
     "outDir": "./lib",
     "strict": true,
     "noImplicitAny": false,
-    "lib": ["es2015"],
-    "types": [],
+    "lib": ["es2015", "DOM"],
+    "types": ["node"],
     "moduleResolution": "node",
     "esModuleInterop": true,
-    "baseUrl": "./src"
+    "sourceMap": true,
+    "baseUrl": "./src",
+    "rootDir": "./src"
   }
 }
