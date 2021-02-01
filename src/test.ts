@@ -54,8 +54,6 @@ function collectInterfaceInfo(
         symbol.getDocumentationComment(checker)
       );
 
-      // ts.display
-
       const propertiesInfo: { [name: string]: InterfacePropertyInfo } = {};
 
       type.getProperties().forEach((symbol) => {
@@ -117,3 +115,20 @@ function getComment(declaration: ts.Declaration, sourceFileFullText: string) {
   const text = sourceFileFullText.slice(range.pos, range.end);
   return text;
 }
+
+/**
+ * ref:
+ *
+ * https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API
+ *
+ * https://stackoverflow.com/questions/56999775/how-to-get-exported-members-using-typescript-compiler-api
+ *
+ * https://stackoverflow.com/questions/50526710/typescript-compiler-api-get-type-of-imported-names
+ *
+ * https://stackoverflow.com/questions/59838013/how-can-i-use-the-ts-compiler-api-to-find-where-a-variable-was-defined-in-anothe
+ *
+ * https://stackoverflow.com/questions/60249275/typescript-compiler-api-generate-the-full-properties-arborescence-of-a-type-ide
+ *
+ * https://stackoverflow.com/questions/47429792/is-it-possible-to-get-comments-as-nodes-in-the-ast-using-the-typescript-compiler
+ *
+ */
