@@ -1,6 +1,6 @@
 import * as ts from "typescript";
 
-collectInterfaceInfo(process.argv.slice(2)[0], {
+collectInterfaceInfo(process.argv.slice(2)[0], process.argv.slice(2)[1], {
   target: ts.ScriptTarget.ES5,
   module: ts.ModuleKind.CommonJS,
 });
@@ -9,81 +9,116 @@ interface InterfaceInfo {
   name: string;
   commentText: string;
   documentation: string;
+  fullText: string;
   properties: { [name: string]: InterfacePropertyInfo };
 }
 
 interface InterfacePropertyInfo {
   name: string;
   commentText: string;
-  typeToString: string;
+  typeText: string;
   documentation: string;
+  fullText: string;
 }
 
 function collectInterfaceInfo(
   fileName: string,
+  exportName: string,
   options: ts.CompilerOptions
-): InterfaceInfo[] {
+): InterfaceInfo {
   // Build a program using the set of root file names in fileNames
   let program = ts.createProgram([fileName], options);
   // Get the checker, we will use it to find more about classes
   let checker = program.getTypeChecker();
 
   const sourceFile = program.getSourceFile(fileName)!;
-  const sourceFileFullText = sourceFile.getFullText();
-  const output: InterfaceInfo[] = [];
-  ts.forEachChild(sourceFile, visit);
 
-  return output;
+  // inspired by
+  // https://github.com/microsoft/rushstack/blob/6ca0cba723ad8428e6e099f12715ce799f29a73f/apps/api-extractor/src/analyzer/ExportAnalyzer.ts#L702
+  // and https://stackoverflow.com/a/58885450
+  const fileSymbol = checker.getSymbolAtLocation(sourceFile);
+  if (!fileSymbol || !fileSymbol.exports) {
+    throw new Error(`unexpected fileSymbol`);
+  }
+  const escapedExportName = ts.escapeLeadingUnderscores(exportName);
+  const exportSymbol = fileSymbol.exports.get(escapedExportName);
+  if (!exportSymbol) {
+    throw new Error(`Named export ${exportName} is not found in file`);
+  }
+  const sourceDeclareSymbol = getAliasedSymbolIfNecessary(exportSymbol);
+  const sourceDeclare = sourceDeclareSymbol.declarations?.[0];
+  if (!sourceDeclare) {
+    throw new Error(`Can't find sourceDeclare for ${exportName}`);
+  }
+  const interfaceInfo = collectInterfaceInfo(
+    sourceDeclare,
+    sourceDeclareSymbol
+  );
+  return interfaceInfo;
 
-  /** visit nodes finding exported classes */
-  function visit(node: ts.Node) {
-    // Only consider exported nodes
-    if (!isNodeExported(node)) {
-      return;
-    }
+  function getAliasedSymbolIfNecessary(symbol: ts.Symbol) {
+    if ((symbol.flags & ts.SymbolFlags.Alias) !== 0)
+      return checker.getAliasedSymbol(symbol);
+    return symbol;
+  }
 
-    if (ts.isInterfaceDeclaration(node)) {
-      const type = checker.getTypeAtLocation(node);
-      const symbol = type.getSymbol();
-      if (!symbol) {
-        throw new Error(`can't find symbol`);
+  function collectInterfaceInfo(node: ts.Declaration, symbol: ts.Symbol) {
+    if (!ts.isInterfaceDeclaration(node))
+      throw new Error(`target is not an InterfaceDeclaration`);
+
+    const type = checker.getTypeAtLocation(node);
+    if (!symbol) throw new Error(`can't find symbol`);
+
+    const name = node.name.getText();
+    const commentText =
+      getComment(node, node.getSourceFile().getFullText()) ?? "";
+    const documentation = ts.displayPartsToString(
+      symbol.getDocumentationComment(checker)
+    );
+
+    const propertiesInfo: { [name: string]: InterfacePropertyInfo } = {};
+
+    symbol.members?.forEach((symbol) => {
+      const name = symbol.name;
+      const declaration = symbol.valueDeclaration;
+      if (
+        !(
+          declaration &&
+          (ts.isPropertySignature(declaration) ||
+            ts.isMethodSignature(declaration))
+        )
+      ) {
+        throw new Error(
+          `unexpected declaration type in interface. name: ${name}, kind: ${
+            ts.SyntaxKind[declaration.kind]
+          }`
+        );
       }
-      const name = node.name.getText();
-      const commentText = getComment(node, sourceFileFullText) ?? "";
+      const commentText =
+        getComment(declaration, declaration.getSourceFile().getFullText()) ??
+        "";
+      const typeText = declaration.type?.getFullText() ?? "";
       const documentation = ts.displayPartsToString(
         symbol.getDocumentationComment(checker)
       );
-
-      const propertiesInfo: { [name: string]: InterfacePropertyInfo } = {};
-
-      type.getProperties().forEach((symbol) => {
-        const name = symbol.name;
-        const declaration = symbol.valueDeclaration;
-        if (!declaration) return;
-        const commentText = getComment(declaration, sourceFileFullText) ?? "";
-        const typeToString = checker.typeToString(
-          checker.getTypeOfSymbolAtLocation(symbol, declaration)
-        );
-        const documentation = ts.displayPartsToString(
-          symbol.getDocumentationComment(checker)
-        );
-        propertiesInfo[name] = {
-          name,
-          commentText,
-          typeToString,
-          documentation,
-        };
-      });
-
-      const interfaceInfo: InterfaceInfo = {
+      propertiesInfo[name] = {
         name,
         commentText,
+        typeText,
         documentation,
-        properties: propertiesInfo,
+        fullText: declaration.getFullText(),
       };
+    });
 
-      output.push(interfaceInfo);
-    }
+    const interfaceInfo: InterfaceInfo = {
+      name,
+      commentText,
+      documentation,
+      properties: propertiesInfo,
+      fullText: node.getFullText(),
+    };
+
+    return interfaceInfo;
   }
 
   /** True if this is visible outside this file, false otherwise */
@@ -121,14 +156,14 @@ function getComment(declaration: ts.Declaration, sourceFileFullText: string) {
  *
  * https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API
  *
- * https://stackoverflow.com/questions/56999775/how-to-get-exported-members-using-typescript-compiler-api
- *
- * https://stackoverflow.com/questions/50526710/typescript-compiler-api-get-type-of-imported-names
- *
  * https://stackoverflow.com/questions/59838013/how-can-i-use-the-ts-compiler-api-to-find-where-a-variable-was-defined-in-anothe
  *
  * https://stackoverflow.com/questions/60249275/typescript-compiler-api-generate-the-full-properties-arborescence-of-a-type-ide
  *
  * https://stackoverflow.com/questions/47429792/is-it-possible-to-get-comments-as-nodes-in-the-ast-using-the-typescript-compiler
  *
+ * Instructions of learning ts compiler:
+ * https://stackoverflow.com/a/58885450
+ *
+ * https://learning-notes.mistermicheels.com/javascript/typescript/compiler-api/
  */

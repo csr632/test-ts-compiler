@@ -10,7 +10,7 @@
     "clean": "rm -rf ./lib",
     "watch": "npm run clean && tsc -w",
     "prepare": "npm run clean && tsc",
-    "start": "node ./lib/test.js ./types/index.ts"
+    "start": "node ./lib/test.js ./types/index.ts ISlidePanelProps"
   },
   "dependencies": {},
   "devDependencies": {
