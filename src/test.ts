@@ -1,9 +1,14 @@
 import * as ts from "typescript";
 
-collectInterfaceInfo(process.argv.slice(2)[0], process.argv.slice(2)[1], {
-  target: ts.ScriptTarget.ES5,
-  module: ts.ModuleKind.CommonJS,
-});
+const defaultTsConfig: ts.CompilerOptions = {
+  moduleResolution: ts.ModuleResolutionKind.NodeJs,
+};
+
+collectInterfaceInfo(
+  process.argv.slice(2)[0],
+  process.argv.slice(2)[1],
+  defaultTsConfig
+);
 
 interface InterfaceInfo {
   name: string;
