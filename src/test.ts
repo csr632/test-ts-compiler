@@ -95,7 +95,7 @@ function collectInterfaceInfo(
       ) {
         throw new Error(
           `unexpected declaration type in interface. name: ${name}, kind: ${
-            ts.SyntaxKind[declaration.kind]
+            ts.SyntaxKind[declaration?.kind ?? ""]
           }`
         );
       }
